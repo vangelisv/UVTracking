@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ti:app xmlns:ti="http://ti.appcelerator.org">
+<id>gr.semanticweb.uvtracker</id>
+<name>UVTracker</name>
+<version>1.0</version>
+<publisher>Vangelis</publisher>
+<url>www.semanticweb.gr/uvtracker</url>
+<description>No description provided</description>
+<copyright>2010 by Vangelis</copyright>
+<icon>default_app_logo.png</icon>
+    <persistent-wifi>false</persistent-wifi>
+    <prerendered-icon>false</prerendered-icon>
+    <statusbar-style>default</statusbar-style>
+    <statusbar-hidden>false</statusbar-hidden>
+    <fullscreen>false</fullscreen>
+    <navbar-hidden>false</navbar-hidden>
+    <analytics>true</analytics>
+<guid>628b01ed-dca6-4b13-94e2-811b993b6b4a</guid>
+	<property name="ti.android.google.map.api.key">0QxF39ABEVA3gZvXvbH0tQcDEjlEL9PhNrBHO3Q</property>
+    <property name="ti.android.google.map.api.key.development">0ZnKXkWA2dIAu2EM-OV4ZD2lJY3sEWE5TSgjJNg</property>
+    <property name="ti.android.google.map.api.key.production">ABQIAAAAx4bPqmtvf1SHyrralAer4RTTabmCcwVtqjhPOlpzGNNvrPx6gRR8umrx3oHAJJpPgmzN89_HJ3UORw</property>
+</ti:app>
