@@ -1,426 +1,300 @@
 var win = Titanium.UI.currentWindow;
-win.backgroundColor = '#fff';
 
-Ti.include("version.js");
-
-if (isIPhone3_2_Plus())
-{
-	//NOTE: starting in 3.2+, you'll need to set the applications
-	//purpose property for using Location services on iPhone
-	Ti.Geolocation.purpose = "GPS demo";
+var isAndroid = false;
+if (Titanium.Platform.name == 'android') {
+	isAndroid = true;
 }
 
+//
+// CREATE ANNOTATIONS
+//
 
-var currentHeadingLabel = Titanium.UI.createLabel({
-	text:'Current Heading (One Shot)',
-	font:{fontSize:12, fontWeight:'bold'},
-	color:'#111',
-	top:10,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(currentHeadingLabel);
-
-var currentHeading = Titanium.UI.createLabel({
-	text:'Updated Heading not fired',
-	font:{fontSize:12},
-	color:'#444',
-	top:30,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(currentHeading);
-
-var updatedHeadingLabel = Titanium.UI.createLabel({
-	text:'Updated Heading',
-	font:{fontSize:12, fontWeight:'bold'},
-	color:'#111',
-	top:50,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(updatedHeadingLabel);
-
-var updatedHeading = Titanium.UI.createLabel({
-	text:'Updated Heading not fired',
-	font:{fontSize:12},
-	color:'#444',
-	top:70,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(updatedHeading);
-
-var updatedHeadingTime = Titanium.UI.createLabel({
-	text:'',
-	font:{fontSize:11},
-	color:'#444',
-	top:90,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(updatedHeadingTime);
-
-var currentLocationLabel = Titanium.UI.createLabel({
-	text:'Current Location (One Shot)',
-	font:{fontSize:12, fontWeight:'bold'},
-	color:'#111',
-	top:110,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(currentLocationLabel);
-
-var currentLocation = Titanium.UI.createLabel({
-	text:'Current Location not fired',
-	font:{fontSize:11},
-	color:'#444',
-	top:130,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(currentLocation);
-
-var updatedLocationLabel = Titanium.UI.createLabel({
-	text:'Updated Location',
-	font:{fontSize:12, fontWeight:'bold'},
-	color:'#111',
-	top:150,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(updatedLocationLabel);
-
-var updatedLocation = Titanium.UI.createLabel({
-	text:'Updated Location not fired',
-	font:{fontSize:11},
-	color:'#444',
-	top:170,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(updatedLocation);
-
-var updatedLatitude = Titanium.UI.createLabel({
-	text:'',
-	font:{fontSize:11},
-	color:'#444',
-	top:190,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(updatedLatitude);
-
-var updatedLocationAccuracy = Titanium.UI.createLabel({
-	text:'',
-	font:{fontSize:11},
-	color:'#444',
-	top:210,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(updatedLocationAccuracy);
-
-var updatedLocationTime = Titanium.UI.createLabel({
-	text:'',
-	font:{fontSize:11},
-	color:'#444',
-	top:230,
-	left:10,
-	height:15,
-	width:300
-});
-
-
-win.add(updatedLocationTime);
-
-
-
-var forwardGeoLabel = Titanium.UI.createLabel({
-	text:'Forward Geo (Addr->Coords)',
-	font:{fontSize:12, fontWeight:'bold'},
-	color:'#111',
-	top:250,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(forwardGeoLabel);
-
-var forwardGeo = Titanium.UI.createLabel({
-	text:'',
-	font:{fontSize:11},
-	color:'#444',
-	top:270,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(forwardGeo);
-
-var reverseGeoLabel = Titanium.UI.createLabel({
-	text:'Reverse Geo (Coords->Addr)',
-	font:{fontSize:12, fontWeight:'bold'},
-	color:'#111',
-	top:290,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(reverseGeoLabel);
-
-var reverseGeo = Titanium.UI.createLabel({
-	text:'',
-	font:{fontSize:11},
-	color:'#444',
-	top:310,
-	left:10,
-	height:15,
-	width:300
-});
-win.add(reverseGeo);
-
-
+var centerAnnotation = Titanium.Map.createAnnotation({
+	latitude:40,
+	longitude:20,
+	title:'center',
+	pincolor:Titanium.Map.ANNOTATION_RED,
+	animate:true
+	});
 var mountainView = Titanium.Map.createAnnotation({
-    latitude:37.390749,
-    longitude:-122.081651,
-    title:"Appcelerator Headquarters",
-    subtitle:'Mountain View, CA',
-    pincolor:Titanium.Map.ANNOTATION_RED,
-    animate:true,
-    leftButton: '../images/appcelerator_small.png',
-    myid:1 // CUSTOM ATTRIBUTE THAT IS PASSED INTO EVENT OBJECTS
-});
- 
-var mapview = Titanium.Map.createView({
-    mapType: Titanium.Map.STANDARD_TYPE,
-    region: {latitude:33.74511, longitude:-84.38993, 
-            latitudeDelta:0.01, longitudeDelta:0.01},
-    animate:true,
-    regionFit:true,
-    userLocation:true,
-    annotations:[mountainView]
+	latitude:37.390749,
+	longitude:-122.081651,
+	title:"Appcelerator Headquarters",
+	subtitle:'Mountain View, CA',
+	pincolor: isAndroid ? "orange" : Titanium.Map.ANNOTATION_RED,
+	animate:true,
+	leftButton: '../images/appcelerator_small.png',
+	myid:1 // CUSTOM ATTRIBUTE THAT IS PASSED INTO EVENT OBJECTS
 });
 
+var apple = Titanium.Map.createAnnotation({
+	latitude:37.33168900,
+	longitude:-122.03073100,
+	title:"Steve Jobs",
+	subtitle:'Cupertino, CA',
+	pincolor:Titanium.Map.ANNOTATION_GREEN,
+	animate:true,
+	rightButton: '../images/apple_logo.jpg',
+	myid:2 // CUSTOM ATTRIBUTE THAT IS PASSED INTO EVENT OBJECTS
+});
+
+var atlantaParams = {
+		latitude:33.74511,
+		longitude:-84.38993,
+		title:"Atlanta, GA",
+		subtitle:'Atlanta Braves Stadium\nfoo',
+		animate:true,
+		leftButton:'../images/atlanta.jpg',
+		rightButton: Titanium.UI.iPhone.SystemButton.DISCLOSURE,
+		myid:3 // CUSTOM ATTRIBUTE THAT IS PASSED INTO EVENT OBJECTS
+	};
+
+if (!isAndroid) {
+	atlantaParams.pincolor = Titanium.Map.ANNOTATION_PURPLE;
+} else {
+	atlantaParams.pinImage = "../images/map-pin.png";
+}
+var atlanta = Titanium.Map.createAnnotation(atlantaParams);
+
+//
+// PRE-DEFINED REGIONS
+//
+var regionAtlanta = {latitude:33.74511,longitude:-84.38993,animate:true,latitudeDelta:0.04, longitudeDelta:0.04};
+var regionSV = {latitude:37.337681,longitude:-122.038193,animate:true,latitudeDelta:0.04, longitudeDelta:0.04};
+
+//
+// CREATE MAP VIEW
+//
+var mapview = Titanium.Map.createView({
+	mapType: Titanium.Map.STANDARD_TYPE,
+	region:{latitude:40, longitude:20, latitudeDelta:0.5, longitudeDelta:0.5},
+	animate:true,
+	regionFit:true,
+	userLocation:true,
+	annotations:[atlanta,apple,centerAnnotation]
+});
+
+if (!isAndroid) {
+	mapview.addAnnotation(atlanta);
+}
+//mapview.selectAnnotation(centerAnnotation);
 win.add(mapview);
 
+//
+// NAVBAR BUTTONS
+//
 
-mapview.addEventListener('complete',function(evt)
+var removeAll = null;
+var atl = null;
+var sv = null;
+var sat = null;
+var std = null;
+var hyb = null;
+var zoomin = null;
+var zoomout = null;
+		
+var wireClickHandlers = function() {
+	removeAll.addEventListener('click', function() {
+		mapview.removeAllAnnotations();
+	});
+
+	atl.addEventListener('click', function() {
+		// set location to atlanta
+		mapview.setLocation(regionAtlanta);
+	
+		// activate annotation
+		mapview.selectAnnotation(mapview.annotations[0].title,true);
+		Ti.API.error("CLICKED ATL");
+	});
+	
+	sv.addEventListener('click', function() {
+		Ti.API.info('IN SV CHANGE');
+		// set location to sv
+		mapview.setLocation(regionSV);
+	
+		// activate annotation
+		mapview.selectAnnotation(mapview.annotations[1].title,true);
+	});
+	
+	sat.addEventListener('click',function() {
+		// set map type to satellite
+		mapview.setMapType(Titanium.Map.SATELLITE_TYPE);
+	});
+	
+	std.addEventListener('click',function() {
+		// set map type to standard
+		mapview.setMapType(Titanium.Map.STANDARD_TYPE);
+	});
+	
+	hyb.addEventListener('click',function() {
+		// set map type to hybrid
+		mapview.setMapType(Titanium.Map.HYBRID_TYPE);
+	});
+	
+	zoomin.addEventListener('click',function() {
+		mapview.zoom(1);
+	});
+	
+	zoomout.addEventListener('click',function() {
+		mapview.zoom(-1);
+	});
+}		
+
+if (!isAndroid) {
+	removeAll = Titanium.UI.createButton({
+		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,
+		title:'Remove All'
+	});
+	win.rightNavButton = removeAll;
+
+	//
+	// TOOLBAR BUTTONS
+	//
+	
+	// button to change to ATL
+	atl = Titanium.UI.createButton({
+		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,
+		title:'ATL'
+	});
+	// activate annotation
+	mapview.selectAnnotation(mapview.annotations[0].title,true);
+	
+	// button to change to SV	
+	sv = Titanium.UI.createButton({
+		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,
+		title:'SV'
+	});
+	mapview.addEventListener('complete', function()
+	{
+		Ti.API.info("map has completed loaded region");
+	});
+		
+	var flexSpace = Titanium.UI.createButton({
+		systemButton:Titanium.UI.iPhone.SystemButton.FLEXIBLE_SPACE
+	});
+	
+	// button to change map type to SAT
+	sat = Titanium.UI.createButton({
+		title:'Sat',
+		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
+	});
+	// button to change map type to STD
+	std = Titanium.UI.createButton({
+		title:'Std',
+		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
+	});
+	// button to change map type to HYBRID
+	hyb = Titanium.UI.createButton({
+		title:'Hyb',
+		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
+	});
+	// button to zoom-in
+	zoomin = Titanium.UI.createButton({
+		title:'+',
+		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
+	});
+	// button to zoom-out
+	zoomout = Titanium.UI.createButton({
+		title:'-',
+		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
+	});
+	
+	wireClickHandlers();
+	
+	win.setToolbar([flexSpace,std,flexSpace,hyb,flexSpace,sat,flexSpace,atl,flexSpace,sv,flexSpace,zoomin,flexSpace,zoomout,flexSpace]);
+} else {
+	var activity = Ti.Android.currentActivity;
+	activity.onCreateOptionsMenu = function(e) {
+		var menu = e.menu;
+		
+		atl = menu.add({title : 'ATL'});
+		sv = menu.add({title : 'SV'});
+		sat = menu.add({title : 'Sat'});
+		std = menu.add({title : 'Std'});
+		hyb = menu.add({title : 'Hyb'});
+		zoomin = menu.add({title : "Zoom In"});
+		zoomout = menu.add({title : 'Zoom Out'});
+		removeAll = menu.add({title:'Remove All'});
+		
+		wireClickHandlers();
+	}
+}
+
+//
+// EVENT LISTENERS
+//
+
+// region change event listener
+mapview.addEventListener('regionChanged',function(evt)
 {
-	 Ti.API.info("Map clicked at");
+	Titanium.API.info('maps region has updated to '+evt.longitude+','+evt.latitude);
+	//Titanium.API.info(mapview.annotations[2].title);
+
+	mapview.removeAnnotation(centerAnnotation);	
+	centerAnnotation.latitude = evt.latitude;
+	centerAnnotation.longitude = evt.longitude;
+	mapview.addAnnotation(centerAnnotation);		
+	mapview.selectAnnotation(centerAnnotation);
 });
 
-//
-//  SHOW CUSTOM ALERT IF DEVICE HAS GEO TURNED OFF
-//
-if (Titanium.Geolocation.locationServicesEnabled==false)
+var annotationAdded = false;
+
+// map view click event listener
+mapview.addEventListener('click',function(evt)
 {
-	Titanium.UI.createAlertDialog({title:'Kitchen Sink', message:'Your device has geo turned off - turn it on.'}).show();
-}
-else
-{
-	
-	//
-	// IF WE HAVE COMPASS GET THE HEADING
-	//
-	if (Titanium.Geolocation.hasCompass)
+
+	// map event properties
+	var annotation = evt.annotation;
+	var title = evt.title;
+	var clickSource = evt.clicksource;
+
+	// custom annotation attribute
+	var myid = (evt.annotation)?evt.annotation.myid:-1;
+
+	Ti.API.info('mapview click clicksource = ' + clickSource);
+	// use custom event attribute to determine if atlanta annotation was clicked
+	if (myid == 3 && evt.clicksource == 'rightButton')
 	{
-		//
-		//  TURN OFF ANNOYING COMPASS INTERFERENCE MESSAGE
-		//
-		Titanium.Geolocation.showCalibration = false;
+		//  change the annotation on the fly
+		evt.annotation.rightView = Titanium.UI.createView({width:20,height:20,backgroundColor:'red'});
+		evt.annotation.leftView = Titanium.UI.createView({width:20,height:20,backgroundColor:'#336699'});
+		evt.annotation.title = "Atlanta?";
+		evt.annotation.pincolor = Titanium.Map.ANNOTATION_GREEN;
+		evt.annotation.subtitle = 'Appcelerator used to be near here';
+		evt.annotation.leftButton = 'images/appcelerator_small.png';
 
-		//
-		// SET THE HEADING FILTER (THIS IS IN DEGREES OF ANGLE CHANGE)
-		// EVENT WON'T FIRE UNLESS ANGLE CHANGE EXCEEDS THIS VALUE
-		Titanium.Geolocation.headingFilter = 90;
-
-		//
-		//  GET CURRENT HEADING - THIS FIRES ONCE
-		//
-		Ti.Geolocation.getCurrentHeading(function(e)
-		{
-			if (e.error)
-			{
-				currentHeading.text = 'error: ' + e.error;
-				return;
-			}
-			var x = e.heading.x;
-			var y = e.heading.y;
-			var z = e.heading.z;
-			var magneticHeading = e.heading.magneticHeading;
-			var accuracy = e.heading.accuracy;
-			var trueHeading = e.heading.trueHeading;
-			var timestamp = e.heading.timestamp;
-			
-			currentHeading.text = 'x:' + x + ' y: ' + y + ' z:' + z;
-			Titanium.API.info('geo - current heading: ' + new Date(timestamp) + ' x ' + x + ' y ' + y + ' z ' + z);
-		});
-
-		//
-		// EVENT LISTENER FOR COMPASS EVENTS - THIS WILL FIRE REPEATEDLY (BASED ON HEADING FILTER)
-		//
-		Titanium.Geolocation.addEventListener('heading',function(e)
-		{
-			if (e.error)
-			{
-				updatedHeading.text = 'error: ' + e.error;
-				return;
-			}
-
-			var x = e.heading.x;
-			var y = e.heading.y;
-			var z = e.heading.z;
-			var magneticHeading = e.heading.magneticHeading;
-			var accuracy = e.heading.accuracy;
-			var trueHeading = e.heading.trueHeading;
-			var timestamp = e.heading.timestamp;
-
-			updatedHeading.text = 'x:' + x + ' y: ' + y + ' z:' + z;
-			updatedHeadingTime.text = 'timestamp:' + new Date(timestamp);
-			updatedHeading.color = 'red';
-			updatedHeadingTime.color = 'red';
-			setTimeout(function()
-			{
-				updatedHeading.color = '#444';
-				updatedHeadingTime.color = '#444';
-				
-			},100);
-			
-			Titanium.API.info('geo - heading updated: ' + new Date(timestamp) + ' x ' + x + ' y ' + y + ' z ' + z);
-		});
 	}
-	else
+	if (myid == 2)
 	{
-		Titanium.API.info("No Compass on device");
-		currentHeading.text = 'No compass available';
-		updatedHeading.text = 'No compass available';
+		if(annotationAdded==false)
+		{
+			mapview.addAnnotation(mountainView);
+			annotationAdded=true;
+		}
+		else
+		{
+			mapview.removeAnnotation(mountainView);
+			annotationAdded=false;
+		}
 	}
+});
 
-	//
-	//  SET ACCURACY - THE FOLLOWING VALUES ARE SUPPORTED
-	//
-	// Titanium.Geolocation.ACCURACY_BEST
-	// Titanium.Geolocation.ACCURACY_NEAREST_TEN_METERS
-	// Titanium.Geolocation.ACCURACY_HUNDRED_METERS
-	// Titanium.Geolocation.ACCURACY_KILOMETER
-	// Titanium.Geolocation.ACCURACY_THREE_KILOMETERS
-	//
-	Titanium.Geolocation.accuracy = Titanium.Geolocation.ACCURACY_BEST;
-
-	//
-	//  SET DISTANCE FILTER.  THIS DICTATES HOW OFTEN AN EVENT FIRES BASED ON THE DISTANCE THE DEVICE MOVES
-	//  THIS VALUE IS IN METERS
-	//
-	Titanium.Geolocation.distanceFilter = 10;
-
-	//
-	// GET CURRENT POSITION - THIS FIRES ONCE
-	//
-	Titanium.Geolocation.getCurrentPosition(function(e)
-	{
-		if (e.error)
-		{
-			currentLocation.text = 'error: ' + JSON.stringify(e.error);
-			Ti.API.error('error ' + JSON.stringify(e.error))
-			return;
-		}
-
-		var longitude = e.coords.longitude;
-		var latitude = e.coords.latitude;
-		var altitude = e.coords.altitude;
-		var heading = e.coords.heading;
-		var accuracy = e.coords.accuracy;
-		var speed = e.coords.speed;
-		var timestamp = e.coords.timestamp;
-		var altitudeAccuracy = e.coords.altitudeAccuracy;
-		Ti.API.info('speed ' + speed)
-		currentLocation.text = 'long:' + longitude + ' lat: ' + latitude;
-		
-		Titanium.API.info('geo - current location: ' + new Date(timestamp) + ' long ' + longitude + ' lat ' + latitude + ' accuracy ' + accuracy);
-	});
-
-	//
-	// EVENT LISTENER FOR GEO EVENTS - THIS WILL FIRE REPEATEDLY (BASED ON DISTANCE FILTER)
-	//
-	Titanium.Geolocation.addEventListener('location',function(e)
-	{
-		if (e.error)
-		{
-			updatedLocation.text = 'error:' + JSON.stringify(e.error);
-			updatedLatitude.text = '';
-			updatedLocationAccuracy.text = '';
-			updatedLocationTime.text = '';
-			return;
-		}
-
-		var longitude = e.coords.longitude;
-		var latitude = e.coords.latitude;
-		var altitude = e.coords.altitude;
-		var heading = e.coords.heading;
-		var accuracy = e.coords.accuracy;
-		var speed = e.coords.speed;
-		var timestamp = e.coords.timestamp;
-		var altitudeAccuracy = e.coords.altitudeAccuracy;
-
-		//Titanium.Geolocation.distanceFilter = 100; //changed after first location event 
-		
-		updatedLocation.text = 'long:' + longitude;
-		updatedLatitude.text = 'lat: '+ latitude;
-		updatedLocationAccuracy.text = 'accuracy:' + accuracy;
-		updatedLocationTime.text = 'timestamp:' +new Date(timestamp);
-
-		updatedLatitude.color = 'red';
-		updatedLocation.color = 'red';
-		updatedLocationAccuracy.color = 'red';
-		updatedLocationTime.color = 'red';
-		setTimeout(function()
-		{
-			updatedLatitude.color = '#444';
-			updatedLocation.color = '#444';
-			updatedLocationAccuracy.color = '#444';
-			updatedLocationTime.color = '#444';
-			
-		},100);
-		
-		// reverse geo
-		Titanium.Geolocation.reverseGeocoder(latitude,longitude,function(evt)
-		{
-			var places = evt.places;
-			reverseGeo.text = places[0].address;
-			Ti.API.debug("reverse geolocation result = "+JSON.stringify(evt));
-		});
-		
-		
-		Titanium.API.info('geo - location updated: ' + new Date(timestamp) + ' long ' + longitude + ' lat ' + latitude + ' accuracy ' + accuracy);
-	});
-
-	
-}
-var addr = "2065 Hamilton Avenue San Jose California 95125";
-
-Titanium.Geolocation.forwardGeocoder(addr,function(evt)
+// annotation click event listener (same as above except only fires for a given annotation)
+atlanta.addEventListener('click', function(evt)
 {
-	Ti.API.info('in forward Geocoder');
-	// alert("in forwardGeocoder");	
-	forwardGeo.text = "lat:"+evt.latitude+", long:"+evt.longitude;
-	Titanium.Geolocation.reverseGeocoder(evt.latitude,evt.longitude,function(evt)
-	{
-		var text = "";
-		for (var i = 0; i < evt.places.length; i++) {
-			text += "" + i + ") " + evt.places[i].address + "\n"; 
-		}
-		Ti.API.info('Reversed forward: '+text);
-	});
+	// get event properties
+	var annotation = evt.source;
+	var clicksource = evt.clicksource;
+	Ti.API.info('atlanta annotation click clicksource = ' + clicksource);
+});
+
+apple.addEventListener('click', function(evt)
+{
+
+	// get event properties
+	var annotation = evt.source;
+	var clicksource = evt.clicksource;
+	Ti.API.info('apple annotation click clicksource = ' + clicksource);
+
+
 });

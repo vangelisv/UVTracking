@@ -77,11 +77,19 @@ var changeButton = Titanium.UI.createButton({
 
 	var loader = Titanium.Network.createHTTPClient();
 	// Sets the HTTP request method, and the URL to get data from
-	loader.open("GET","http://www.temis.nl/uvradiation/nrt/uvindex.php?lon=" + LongSlider.value + "&lat" + LatSlider.value);
+	loader.open("POST","http://192.168.1.209:8082");
+	loader.setRequestHeader('Content-Type','application/json');
+
 	// Runs the function when the data is ready for us to process
 	loader.onload = function() 
 	{
-		alert("on load");
+		Ti.API.info("on load");
+		ta1.value = this.responseText;		
+	};
+	
+	loader.onerror = function() 
+	{
+		Ti.API.info("on error");
 		ta1.value = this.responseText;		
 	};
 //	do not execute a send when loading the page 
@@ -89,10 +97,11 @@ var changeButton = Titanium.UI.createButton({
 
 changeButton.addEventListener('click', function()
 {
-	alert("button pressed");
 	// Send the HTTP request
-	loader.send();
-	alert("button pressed 2");	
+	var jsonPost = "{\"long\":"+LongSlider.value+",\"lat\":"+LatSlider.value+"}";
+	Ti.API.info(jsonPost);
+	loader.send(jsonPost);
+	Ti.API.info("button pressed 2");	
 
 });
 

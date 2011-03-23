@@ -31,12 +31,12 @@ public final class UvtrackerApplication extends TiApplication {
 	protected void bootModules(TiContext context) {
 		// XML module
 		modules.add(new ti.modules.titanium.xml.XMLModule(context));
-		// Geolocation module
-		modules.add(new ti.modules.titanium.geolocation.GeolocationModule(context));
-		// Network module
-		modules.add(new ti.modules.titanium.network.NetworkModule(context));
 		// Map module
 		modules.add(new ti.modules.titanium.map.MapModule(context));
+		// Network module
+		modules.add(new ti.modules.titanium.network.NetworkModule(context));
+		// Platform module
+		modules.add(new ti.modules.titanium.platform.PlatformModule(context));
 		// Locale module
 		modules.add(new ti.modules.titanium.locale.LocaleModule(context));
 		// Media module
@@ -51,8 +51,6 @@ public final class UvtrackerApplication extends TiApplication {
 		modules.add(new ti.modules.titanium.api.APIModule(context));
 		// UI module
 		modules.add(new ti.modules.titanium.ui.UIModule(context));
-		// Platform module
-		modules.add(new ti.modules.titanium.platform.PlatformModule(context));
 		// Filesystem module
 		modules.add(new ti.modules.titanium.filesystem.FilesystemModule(context));
 		// Android module
