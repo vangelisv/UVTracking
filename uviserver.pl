@@ -30,49 +30,171 @@
 
 
 
-has_location(PrefLabel,ID,Lat,Long) :-
-	rdf_global_id(geo:long,LongP),propertyAssertion(LongP,ID,Long),
-	rdf_global_id(geo:lat,LatP),propertyAssertion(LatP,ID,Lat),
-	rdf_global_id(core:prefLabel,LabelP),propertyAssertion(LabelP,ID,PrefLabel).
-
-location_query(L,Result) :- visited(location_query(L,Result)),!.
-location_query(L,Result) :-
-	rdf_global_id(nyt:search_api_query,P),
-	propertyAssertion(P,L,literal(type(_,Q))),
-	atom_concat( Q,'&api-key=7f2fea2a303d72a5f65046d832e9836c:4:60280314',Q1),
-	http_get(Q1,Result,[]),
-	assert(visited(location_query(L,Result))).
-
-
-query_articles(Query,Articles) :-
-	atom_codes(Query,Codes),phrase(location_stories(Articles),Codes,_).
-
-location_articles(L,Bodies) :-
-	location_query(L,Result),query_articles(Result,[story(_,Articles,_Count)]),!,
-	findall(Body,(member(Article,Articles),
-		      (member(facet(abstract,Body),Article) ; member(facet(body,Body),Article))), Bodies).
-
-
 % --------------------------------------------
+%
+%
+% arity 29
+:- json_object placefinder(quality,latitude,longitude,offsetlat,offsetlon,radius,name,
+			   line1,line2,line3,line4,house,street,xstreet,unittype,unit,postal,neighborhood,
+			   city,county,state,country,countrycode,statecode,countycode,hash,woeid,woetype,uzip).
 
-get_and_parse_uvindex(Service, Long, Lat, UVIndex) :-
+% JSON object to be communicated between server and mobile app
+% date is of 'Tue, 23 Mar 2011'
+% time is 23:45:40 TZN or '' for forecast
+% uni,effuvi numbers (one decimal)
+% link is the link to provide current weather and forecast for nearest location
+% units is 'c' of 'f'
+% temp,maxtemp,mintemp termarature current or forecast, integer
+:- json_object uvidata(date,time, uvi,effuvi, link, ywcode,ywtext, unit, temp, high, low).
+
+
+
+%% get_placefinders(+ResultSet:xml, -Places:list) is det
+%
+% Parses an XML structure returned from the PlaceFinder Yahoo service
+% and returns a list of prolog terms representing places
+%
+% @ param ResultSet The Places result set as it is returned by Yahoo
+% service.
+% @ param Places List of returned places as placefinder/29 terms.
+
+get_placefinders(ResultSet,Places) :-
+	ResultSet = [element('ResultSet',[version='1.0'],Elements)],
+	findall(Place,
+		(member(element('Result',_,ResultElements),Elements),
+		 findall(Value,(
+			       member(element(_,_,ValueA),ResultElements),
+				(   ValueA = [] -> Value = '' ; ValueA =[Value])
+			       ),Attrs),
+		 Place =.. [placefinder|Attrs]
+		),
+		Places).
+
+
+get_placefinders(ResultSet,[]) :-
+	debug(placefinder,'Yahoo Place finder parser error - unexpected resultset ~w',[ResultSet]).
+
+
+get_placefinder_woeid(Place,Woeid) :-
+	arg(27,Place,Woeid).
+
+%% yahoo_weather(+Woeid:atom, +U:atom, -Result:list) is det
+%
+% Calls the yahoo wheather service and parses the result.
+%
+% @ param Woeid The ID of the place as retutned by the PlaceFinder
+% service.
+% @ param U= F(arenhait) or C(elcius).
+% @ param Result Custom result, currently list os
+
+yahoo_weather(Woeid,Unit,WeatherData) :-
+	atomic_list_concat(['http://weather.yahooapis.com/forecastrss?w=',Woeid,'&u=',Unit],HTTPQuery),
+	http_open(HTTPQuery, Stream, []),
+	load_structure(Stream,Result,[dialect(xml),space(sgml)]),
+	close(Stream),
+	debug(http_server,'yahoo forecast rss: ~w',[Result]),
+	Result = [element(rss,_,[element(channel,_,ChannelEl)|_])|_],
+	member(element(link,_,[Link]),ChannelEl),!,
+	(   member(element(item,_,ItemEl),ChannelEl) ->
+	    findall(WDataEl,
+		    (	member(element('yweather:condition',Condition,_),ItemEl),
+			yw_weather_data(Condition,Link,Unit,condition,WDataEl) ;
+
+		    member(element('yweather:forecast',Forecast,_),ItemEl),
+			yw_weather_data(Forecast,Link,Unit,forecast,WDataEl)
+		    ),
+		    WeatherData)
+	; WeatherData = []
+	).
+
+% If no proper data from service return empty list.
+yahoo_weather(_Woeid,_Unit,[]).
+
+
+yw_weather_data(YWData,Link,Unit,condition,weatherdata(Date,Time,Link,Code,Text,Unit,Temp,'','')) :-
+	member(date=DateTime,YWData),
+	atom_codes(DateTime,DTCodes),phrase(date_time(Date,Time),DTCodes,[]),
+	member(text=Text,YWData),
+	member(code=Code,YWData),
+	member(temp=Temp,YWData),!.
+
+yw_weather_data(YWData,Link,Unit,forecast,weatherdata(Date,'',Link,Code,Text,Unit,'',High,Low)) :-
+	member(day=Day,YWData),
+	member(date=Date1,YWData),
+	atomic_list_concat([Day,', ',Date1],Date),
+	member(text=Text,YWData),
+	member(code=Code,YWData),
+	member(low=Low,YWData),
+	member(high=High,YWData),!.
+
+
+%% merge_uvi_weather(+UVI:list, +Weather:list -Merged:list
+%% is det
+%
+% Merges the UVI index data with weather data.
+%
+% @ param UVI list of uvindex('&nbsp; 30 Mar 2011 ',noon,'11.9 '),
+% @ param Weather list of weatherdata(Date, Time, Link,Code,Text,Unit,Temp,High, Low)
+% @param Merged list of uvidata(date,time, uvi,effuvi, link,ywcode,ywtext, unit, temp, high, low).
+
+merge_uvi_weather(UVIList,Weather,Merged) :-
+	findall(uvidata(Date,Time, UVI, EffUVI, Link, YWCode,YWText, Unit, Temp, High, Low),
+		(   member(uvindex(UVDate,_UVTime,UVI),UVIList),
+		    (	get_dates_weather_data(condition,UVDate,Weather,Date, Time,Link,YWCode,YWText,Unit,Temp,_High,_Low) ->
+		    get_dates_weather_data(forecast,UVDate,Weather,_Date,_Time,_Link,_YWCode, _YText, _Unit, _Temp, High,Low) ;
+		    (	get_dates_weather_data(forecast,UVDate,Weather,Date,Time,Link,YWCode, YWText, Unit, Temp, High,Low) -> true;
+		    Date = UVDate, Time = '', Link = '', YWCode = '', YWText = '' , Unit = '', Temp = '' , High = '' , Low = '')
+		    ),
+		    calc_eff_uvi(UVI, Time, YWCode, EffUVI)),
+		Merged),!.
+
+get_dates_weather_data(Mode,UVDate, WeatherData, Date, Time, Link, Code, Text, Unit, Temp, High, Low) :-
+	member(weatherdata(Date, Time, Link,Code,Text,Unit,Temp,High, Low),WeatherData),
+	sub_atom(Date,_,_,_,UVDate),
+	(   Mode = condition -> Time \= '' ; Time = '' ),!, %
+	debug(merging,'Mode ~w, UVDATE ~w, DATE ~w',[Mode, UVDate,Date]).
+
+calc_eff_uvi(UVI,_,_,UVI).
+
+
+
+
+get_and_parse_uvindex(Service, Lat,Long, WUVData) :-
 	nb_setval(dcg_mode,p),
-	service_description(Service,Long,Lat,HTTPQuery,Grammar),
-	http_get(HTTPQuery,R,[]),
+	service_description(Service,Lat,Long,HTTPQuery,Grammar),
+	http_get(HTTPQuery,R,[timeout(5)]),
 	atom_codes(R,Codes),
 	Term =.. [Grammar,UVIndex],
-	phrase(Term,Codes,_Rest).
+	debug(http_server,'before parsing uvi service:~w',[Term]),
+	phrase(Term,Codes,_Rest),!, % Just once get UVIndex data
+	debug(http_server,'UVIndex :~w',[UVIndex]),
+	service_description('PlaceFinder',Lat,Long,HTTPQuery2,_Grammar2),
+	% http_get(HTTPQuery2,R2,[]),
+	http_open(HTTPQuery2, Stream, []),
+	load_structure(Stream,R2,[dialect(xml),space(sgml)]),
+	debug(http_server,'PlaceFinder :~w',[R2]),
+	get_placefinders(R2,[Place|_]),
+	get_placefinder_woeid(Place,Woeid),
+	close(Stream),
+	debug(http_server,'Woeid :~w',[Woeid]),
+	yahoo_weather(Woeid,c,Weather),
+	merge_uvi_weather(UVIndex,Weather,WUVData),!.
+	%prolog_to_json(Merged,WJSON),
+	%reply_json(WJSON),nl.
 
-service_description(temis, Long,Lat, HTTPQuery, temis_dcg) :-
+service_description(temis, Lat,Long, HTTPQuery, temis_dcg) :-
        atomic_list_concat(['http://www.temis.nl/uvradiation/nrt/uvindex.php?lon=',Long,'&lat=',Lat],HTTPQuery).
 
+service_description('PlaceFinder', Lat,Long, HTTPQuery, place_finder_dcg) :-
+       atomic_list_concat(['http://where.yahooapis.com/geocode?q=',Lat,',',Long,'&gflags=R&appid=','4wbGCM32'],HTTPQuery).
 
-
-go(UVIndex) :-
+go(Lat,Long,WUVData) :-
 	nb_setval(dcg_mode,p),
-	get_and_parse_uvindex(temis, 23.078, 50.57, UVIndex).
-
-test_service(Long,Lat) :-
+	get_and_parse_uvindex(temis,Lat,Long, WUVData).
+go(WUVData) :-
+	nb_setval(dcg_mode,p),
+	get_and_parse_uvindex(temis,40.567434,22.983676, WUVData).
+test_service(Lat,Long) :-
 	http_post('http://localhost:8082', json(json([long=Long,lat=Lat])), Reply, [content_type(text)]),
 	print(Reply),nl.
 
@@ -90,38 +212,12 @@ uvservice_handle(Request) :-
 	debug(http_server,'json in ~w',JSONIn),
 	JSONIn = json([long=Long,lat=Lat]),
 	debug(http_server,'LONG,LAT ~w ~w',[Long,Lat]),
-	get_and_parse_uvindex(temis,Lat,Long,[_|UVIndex]),
-	debug(http_server,'temis parsed uvindex ~w',UVIndex),
+	get_and_parse_uvindex(temis,Lat,Long,WUVData),
+	debug(http_server,'temis parsed uvindex ~w',WUVData),
         %  <compute>(PrologIn, PrologOut),		% application body
-        prolog_to_json(UVIndex, JSONOut),
-        reply_json(JSONOut).
+        prolog_to_json(WUVData, WUVDataJSON),
+        reply_json(WUVDataJSON).
 
-
-topos_http_reply(Request) :-
-	format('Content-type: text/xml\r\n\r\n'),
-	member(input(StIn),Request),
-	member(peer(_Peer),Request),
-	member(path(Path),Request),
-	debug(http_server,'request ~w',Request),
-	% open('topos_http.log',append,Log),write(Log,Request),nl(Log),
-	(   Path = '/crossdomain.xml',!,
-	    xml_write(element('cross-domain-policy',[],[element(allow-access-from,[domain='*'],[])]),[])
-	;
-	     set_stream(StIn,timeout(0)),
-	    debug(http_server,'before load structure ~w',Request),
-	     load_structure(StIn, RequestXML,[dialect(xml),space(sgml)]),
-	    debug(http_server,'after load structure ~w',Request)
-	),
-	% write(Log,RequestXML),nl(Log),
-	catch(
-	      (	  topos_response(RequestXML,Result),
-		  % write(Log,Result),
-		  xml_write([Result],[header(true),layout(true)])),
-		  % xml_write(Log,[Result],[header(true),layout(true)]),nl(Log))
-	      Message,
-	      Result=element(error,[],[Message])),
-	debug(http_server,'after topos response processing result:~w',[Result]).
-	% close(Log).
 
 
 topos_response([element(locations,[],[])],element(locations,[],Locations)) :-
@@ -176,49 +272,6 @@ topos_response([element(location,LocationAttrs,[])],element(location_linked_data
 	debug(debug,'location response completed',[]).
 
 
-story_XML(LID,Facets,XML) :-
-	findall(Element1,
-		(   member(facet(Name,Value),Facets),
-		    facet_element(LID,Name,Value,Element),
-		    member(Element1,Element)),
-		XML).
-
-facet_element(LID,Name,[H|T],[element(Name,[],Elements)]) :-
-	findall(element(MultimediaName,[],X),
-		(   member(facet(MultimediaName,MultimediaValue),[H|T]),
-		    facet_element(LID,MultimediaName,MultimediaValue,X)),
-		Elements),!.
-
-facet_element(_LID,Name,[H|T],Elements) :-
-	      findall(element(Name,[],[Value]),
-		      member(Value,[H|T]),
-		      Elements),!.
-
-facet_element(LID,Name,Value,[element(Name,[],[Value])]) :-
-	Name = body,
-	visited(location_story_body(LID,Value,_)),!.
-
-facet_element(LID,Name,Value,[element(Name,[],[Value])]) :-
-	Name = body,!,
-	assert(location_story_body(LID,Value)).
-
-
-facet_element(_LID,Name,Value,[element(Name,[],[Value])]).
-
-
-
-
-clear_location(LID) :-
-	retractall(visited(location_query(LID,_))),
-	(   visited(location_ontology(LID,Ont)),
-	    retractall(ontology(Ont)),
-	    forall(ontologyAxiom(Ont,Axiom),retract(Axiom)),
-	    retractall(ontologyAxiom(Ont,_))
-	; true),
-	retractall(visited(location_ontology(LID,_))),
-	retractall(visited(location_oc(LID))),
-	retractall(visited(location_ld(LID,_))).
-
 
 t(LID,LDMode,OCMode,VisualMode) :-
 	topos_response([element(location,[id=LID,
@@ -227,13 +280,6 @@ t(LID,LDMode,OCMode,VisualMode) :-
 					 visualisation_mode=VisualMode],[])], X),
 	open('location_response.xml',write,Log,[encoding(utf8)]),stream_property(Log,encoding(utf8)),
 	xml_write(Log,[X],[header(true),layout(true)]),close(Log).
-
-istanbul :-
-	t('http://data.nytimes.com/N2952224495637104151',true,true,concept).
-
-acapulco :- t('http://data.nytimes.com/N90697374154619704121',true,true,concept).
-
-paris :- t('http://data.nytimes.com/N38451885616396959731',true,false,concept).
 
 
 individual_graph(LID,ID,DerefMode,VisualMode,[element(node,[type=IndType,id=IDGA],Arcs)]) :-
@@ -363,32 +409,6 @@ rdfs_property :-
 		   assert_axiom(T))).
 
 
-%% nyt_elements is det
-%
-% Asserts adhoc Ontology axioms (dataProperty) to compensate for missing
-% Ontology declarations.
-
-nyt_elements :-
-	assert_axiom(dataProperty('http://data.nytimes.com/elements/first_use')),
-	assert_axiom(dataProperty('http://data.nytimes.com/elements/latest_use')),
-	assert_axiom(dataProperty('http://data.nytimes.com/elements/number_of_variants')),
-	assert_axiom(dataProperty('http://data.nytimes.com/elements/associated_article_count')),
-	assert_axiom(dataProperty('http://data.nytimes.com/elements/search_api_query')),
-	assert_axiom(dataProperty('http://data.nytimes.com/elements/mapping_strategy')),
-	assert_axiom(dataProperty('http://data.nytimes.com/elements/topicPage')),
-	assert_axiom(dataProperty('http://xmlns.com/foaf/0.1/primaryTopic')),
-	assert_axiom(dataProperty('http://www.w3.org/2003/01/geo/wgs84_pos#long')),
-	assert_axiom(dataProperty('http://www.w3.org/2003/01/geo/wgs84_pos#lat')),
-	assert_axiom(dataProperty('http://purl.org/dc/elements/1.1/creator')).
-
-
-%% load_nyt_locations is det
-%
-% Loads (from local urls at the moment) needed Ontologies (TBoxes) and
-% NYT data Locations
-%
-
-
               /*******************************
 		 * DCG FOR TEMIS Service RESULTS   *
 	       *******************************/
@@ -405,7 +425,7 @@ dcg_table(UVIndex) -->
 
 temis_dcg_trs([uvindex(Day,noon,Value)|Rest]) -->
 	"<tr>",ws,
-	dcg_td(Day),ws,dcg_td(Value), ws, dcg_td(_),
+	dcg_temis_date(Day),ws,dcg_temis_uv(Value), ws, dcg_td(_),
 	ws, "</tr>", ws,
 	temis_dcg_trs(Rest).
 temis_dcg_trs([]) --> [].
@@ -415,6 +435,16 @@ dcg_td(TD) -->
 	{atom_codes(TD,[T|D])},
 	"</td>".
 
+dcg_temis_uv(Value) -->
+	"<td", [_|_], ">", ws,numeric_literal(Value), ws,
+	"</td>".
+
+
+dcg_temis_date(Date) -->
+	"<td", [_|_], ">", [_|_], date(Date), ws,
+	"</td>".
+
 :- json_object uvindex(date, time, uvalue).
 :- json_object geolocation(long,lat).
+
 

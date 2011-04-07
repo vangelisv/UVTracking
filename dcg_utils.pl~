@@ -26,8 +26,7 @@
 	   parse_error/3,
 	   remove_obj/3,
 	   colon_to_underscore/2,
-	   date_time/4,
-	   date/3
+	   date_time/4
 	  ]).
 
 /** <module> DCG utility predicates
@@ -226,22 +225,20 @@ colon_to_underscore([H|T]) --> [H|T].
 
 % -------------------------------
 %
-
-
 date_time(Date,Time) -->
-	date(Date),ws,
-	[T|Ime],
-	{atom_codes(Time,[T|Ime])}.
-
-date(Date) -->
 	identifier(DoW),", ",
 	numeric_literal(Day),[32],
 	identifier(Month),[32],
-	numeric_literal(Year),
-	{atomic_list_concat([DoW,', ',Day,' ',Month,' ',Year],Date)}.
+	numeric_literal(Year),[32],
+	[T|Ime],
+	{atom_codes(Time,[T|Ime]),
+	 atomic_list_concat([DoW,', ',Day,' ',Month,' ',Year],Date)}.
 
-date(Date) -->
+date_time(Date,Time) -->
 	numeric_literal(Day),[32],
 	identifier(Month),[32],
-	numeric_literal(Year),
-	{atomic_list_concat([Day,' ',Month,' ',Year],Date)}.
+	numeric_literal(Year),[32],
+	[T|Ime],
+	{atom_codes(Time,[T|Ime]),
+	 atomic_list_concat([Day,' ',Month,' ',Year],Date)}.
+

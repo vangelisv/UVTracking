@@ -6,42 +6,12 @@ var tabGroup = Titanium.UI.createTabGroup();
 
 
 //
-// Map Window and Tab
-//
-var winMap = Titanium.UI.createWindow({  
-	url:"geolocation.js",
-    title:'Map',
-    backgroundColor:'#fff'
-});
-var tabMap = Titanium.UI.createTab({  
-    icon:'KS_nav_views.png',
-    title:'Map',
-    window:winMap
-});
-
-
-//
-// UV Index window and Tab
-//
-var winUVIndex = Titanium.UI.createWindow({  
-    title:'UV Index',
-    backgroundColor:'#fff',
-	url:'uvindex.js'
-});
-var tabUVIndex = Titanium.UI.createTab({  
-    icon:'KS_nav_views.png',
-    title:'UV Index',
-    window:winUVIndex
-});
-
-
-
-//
 // UV Track window and Tab
 //
 var winUVTrack = Titanium.UI.createWindow({  
     title:'Track UV',
-    backgroundColor:'#fff'
+    backgroundColor:'#fff',
+	url:'uvtracking.js'
 });
 var tabUVTrack = Titanium.UI.createTab({  
     icon:'KS_nav_views.png',
@@ -49,18 +19,39 @@ var tabUVTrack = Titanium.UI.createTab({
     window:winUVTrack
 });
 
+
 //
-//  Info window and Tab
+// Locations and Map Window and Tab
 //
-var winInfo = Titanium.UI.createWindow({  
-    title:'Info on UV',
-    backgroundColor:'#fff'
+var winMap = Titanium.UI.createWindow({  
+    title:'Map',
+    backgroundColor:'#fff',
+	url:"locations_map.js",
 });
-var tabInfo = Titanium.UI.createTab({  
+var tabMap = Titanium.UI.createTab({  
     icon:'KS_nav_views.png',
-    title:'UV Info',
-    window:winInfo
+    title:'Locations',
+    window:winMap
 });
+
+//
+// Users window and Tab
+//
+var winUsers = Titanium.UI.createWindow({  
+    title:'People',
+    backgroundColor:'#fff',
+	url:'users.js',
+	UVIData:''
+});
+
+var tabUsers = Titanium.UI.createTab({  
+    icon:'KS_nav_views.png',
+    title:'People',
+    window:winUsers
+});
+
+
+
 
 //
 // Settings window and Tab
@@ -78,11 +69,27 @@ var tabSettings = Titanium.UI.createTab({
 
 
 //
+//  Info window and Tab
+//
+var winInfo = Titanium.UI.createWindow({  
+    title:'UV Info and Resources',
+    backgroundColor:'#fff',
+	url:'info_resources.js'
+	
+});
+var tabInfo = Titanium.UI.createTab({  
+    icon:'KS_nav_views.png',
+    title:'UV Info',
+    window:winInfo
+});
+
+
+//
 //  add tabs
 //
-tabGroup.addTab(tabMap);
-tabGroup.addTab(tabUVIndex);
 tabGroup.addTab(tabUVTrack);
+tabGroup.addTab(tabMap);
+tabGroup.addTab(tabUsers);
 tabGroup.addTab(tabSettings);
 tabGroup.addTab(tabInfo);  
   

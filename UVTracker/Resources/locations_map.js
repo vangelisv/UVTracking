@@ -5,6 +5,10 @@ if (Titanium.Platform.name == 'android') {
 	isAndroid = true;
 }
 
+
+Ti.include('uvindex.js');
+
+
 //
 // CREATE ANNOTATIONS
 //
@@ -67,7 +71,7 @@ var regionSV = {latitude:37.337681,longitude:-122.038193,animate:true,latitudeDe
 //
 var mapview = Titanium.Map.createView({
 	mapType: Titanium.Map.STANDARD_TYPE,
-	region:{latitude:40, longitude:20, latitudeDelta:0.5, longitudeDelta:0.5},
+	region:{latitude:40.62, longitude:22.94, latitudeDelta:0.5, longitudeDelta:0.5},
 	animate:true,
 	regionFit:true,
 	userLocation:true,
@@ -79,6 +83,7 @@ if (!isAndroid) {
 }
 //mapview.selectAnnotation(centerAnnotation);
 win.add(mapview);
+
 
 //
 // NAVBAR BUTTONS
@@ -239,10 +244,21 @@ mapview.addEventListener('regionChanged',function(evt)
 
 var annotationAdded = false;
 
+
+function show_uv_index(){
+	// Here all the story on updatin the table goes
+		UVIData = JSON.parse(this.responseText);
+		Ti.API.info(UVIData[0].date);
+		actInd.hide();
+		Ti.API.info('uv window open here');
+		
+		tblUVData.setData([])
+		Titanium.UI.currentTab.open(winUVIndex, {animated: true});		
+};
+
 // map view click event listener
 mapview.addEventListener('click',function(evt)
 {
-
 	// map event properties
 	var annotation = evt.annotation;
 	var title = evt.title;
@@ -251,7 +267,10 @@ mapview.addEventListener('click',function(evt)
 	// custom annotation attribute
 	var myid = (evt.annotation)?evt.annotation.myid:-1;
 
-	Ti.API.info('mapview click clicksource = ' + clickSource);
+	Ti.API.info('mapview click clicksource = ' + clickSource + ' on ann title:' + annotation.title);
+	if (annotation.title=='center') {
+		get_uvi_data(evt.latitude, evt.longitude, show_uv_index);			
+	}
 	// use custom event attribute to determine if atlanta annotation was clicked
 	if (myid == 3 && evt.clicksource == 'rightButton')
 	{
@@ -295,6 +314,15 @@ apple.addEventListener('click', function(evt)
 	var annotation = evt.source;
 	var clicksource = evt.clicksource;
 	Ti.API.info('apple annotation click clicksource = ' + clicksource);
-
-
 });
+
+centerAnnotation.addEventListener('click', function(evt)
+{
+	var annotation = evt.source;
+	var clicksource = evt.clicksource;
+
+	Ti.API.info('center annotation click clicksource = ' + clicksource);
+	winUVIndex.open();	
+});
+
+
