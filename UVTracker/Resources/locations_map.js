@@ -1,4 +1,5 @@
 var win = Titanium.UI.currentWindow;
+var annotations = [];
 
 var isAndroid = false;
 if (Titanium.Platform.name == 'android') {
@@ -7,11 +8,9 @@ if (Titanium.Platform.name == 'android') {
 
 
 Ti.include('uvindex.js');
+Ti.include('locations.js');
 
 
-//
-// CREATE ANNOTATIONS
-//
 
 var centerAnnotation = Titanium.Map.createAnnotation({
 	latitude:40,
@@ -28,37 +27,10 @@ var mountainView = Titanium.Map.createAnnotation({
 	pincolor: isAndroid ? "orange" : Titanium.Map.ANNOTATION_RED,
 	animate:true,
 	leftButton: '../images/appcelerator_small.png',
+	rightButton: '../images/apple_logo.jpg',
 	myid:1 // CUSTOM ATTRIBUTE THAT IS PASSED INTO EVENT OBJECTS
 });
 
-var apple = Titanium.Map.createAnnotation({
-	latitude:37.33168900,
-	longitude:-122.03073100,
-	title:"Steve Jobs",
-	subtitle:'Cupertino, CA',
-	pincolor:Titanium.Map.ANNOTATION_GREEN,
-	animate:true,
-	rightButton: '../images/apple_logo.jpg',
-	myid:2 // CUSTOM ATTRIBUTE THAT IS PASSED INTO EVENT OBJECTS
-});
-
-var atlantaParams = {
-		latitude:33.74511,
-		longitude:-84.38993,
-		title:"Atlanta, GA",
-		subtitle:'Atlanta Braves Stadium\nfoo',
-		animate:true,
-		leftButton:'../images/atlanta.jpg',
-		rightButton: Titanium.UI.iPhone.SystemButton.DISCLOSURE,
-		myid:3 // CUSTOM ATTRIBUTE THAT IS PASSED INTO EVENT OBJECTS
-	};
-
-if (!isAndroid) {
-	atlantaParams.pincolor = Titanium.Map.ANNOTATION_PURPLE;
-} else {
-	atlantaParams.pinImage = "../images/map-pin.png";
-}
-var atlanta = Titanium.Map.createAnnotation(atlantaParams);
 
 //
 // PRE-DEFINED REGIONS
@@ -75,155 +47,220 @@ var mapview = Titanium.Map.createView({
 	animate:true,
 	regionFit:true,
 	userLocation:true,
-	annotations:[atlanta,apple,centerAnnotation]
+	annotations:[]
 });
+
+//
+// CREATE ANNOTATIONS FROM LOCATIONS
+//
+
+function locations_to_annotations() {
+
+	var annot;
+	mapview.removeAllAnnotations();
+	for(var ii=0;ii<locations.length;ii++) {
+		annot = Titanium.Map.createAnnotation({
+			latitude:locations[ii].latitude,
+			longitude:locations[ii].longitude,
+			title:locations[ii].title,
+			pincolor:Titanium.Map.ANNOTATION_GREEN,
+			pincolor: locations[ii].track ? Titanium.Map.ANNOTATION_GREEN : 3,
+			animate:true
+		});
+		
+		Ti.API.info('create annot from location' + annot + ' ' + annot.title);
+		Ti.API.info('annot ' + ii + ' title =' + annot.title);
+		Ti.API.info('annot ' + ii + ' lat =' + annot.latitude);
+		Ti.API.info('annot ' + ii + ' long =' + annot.longitude);
+		mapview.addAnnotation(annot);
+	}	
+}
+
+locations_to_annotations();
+mapview.addAnnotation(centerAnnotation);
+Ti.API.info('annot count='+mapview.annotations.length);
 
 if (!isAndroid) {
 	mapview.addAnnotation(atlanta);
 }
+
 //mapview.selectAnnotation(centerAnnotation);
 win.add(mapview);
 
 
 //
-// NAVBAR BUTTONS
+// NAVBAR - MENU BUTTONS
 //
 
-var removeAll = null;
-var atl = null;
-var sv = null;
-var sat = null;
-var std = null;
-var hyb = null;
-var zoomin = null;
-var zoomout = null;
+var mtmAddNewCenter = null;
+var mtmAddNewHere = null;
+var mtmRemoveRow = null;
+var mtmMapTable = null;
+var mtmSat = null;
+var mtmStd = null;
+var mtmHyb = null;
+var mtmZoomin = null;
+var mtmZoomout = null;
 		
-var wireClickHandlers = function() {
-	removeAll.addEventListener('click', function() {
-		mapview.removeAllAnnotations();
+function wireClickHandlers() {
+		
+	// Menu item click on add new location at center of map
+	mtmAddNewCenter.addEventListener('click', function() {
+		// Add new Location at center of map
+		var newLocation = {title:'new location',
+						subtitle:'description',
+						leftButton:null, 
+						rightButton:null,
+						animation:true,
+						pincolor:Titanium.Map.ANNOTATION_RED,
+						myId:{id:locations.lentgh,track:true},
+						track:true,
+						latitude:centerAnnotation.latitude,
+						longitude:centerAnnotation.longitude};	
+		Ti.API.info('loc.length before adding'+locations.length)	;								  
+		locations.push(newLocation);			
+		Ti.API.info('loc.length after adding'+locations.length)	;
+		locationsTable.appendRow(populate_location_row(locations.length-1));						
+		winLocations.open();			
 	});
 
-	atl.addEventListener('click', function() {
-		// set location to atlanta
-		mapview.setLocation(regionAtlanta);
-	
-		// activate annotation
-		mapview.selectAnnotation(mapview.annotations[0].title,true);
-		Ti.API.error("CLICKED ATL");
+	// Menu item click on add new location here (current location) 
+	mtmAddNewHere.addEventListener('click', function() {
+		// Get Geo location first here 
+		var newLocation = {title:'new location',
+						subtitle:'description',
+						leftButton:null, 
+						rightButton:null,
+						animation:true,
+						pincolor:Titanium.Map.ANNOTATION_RED,
+						myId:{id:locations.lentgh,track:true},
+						track:true,
+						latitude:centerAnnotation.latitude,
+						longitude:centerAnnotation.longitude};						  
+		locations.push(newLocation);			
+		locationsTable.appendRow(populate_location_row(locations.length));		
+		winLocations.open();			
 	});
-	
-	sv.addEventListener('click', function() {
-		Ti.API.info('IN SV CHANGE');
-		// set location to sv
-		mapview.setLocation(regionSV);
-	
-		// activate annotation
-		mapview.selectAnnotation(mapview.annotations[1].title,true);
+
+
+	mtmRemoveRow.addEventListener('click', function() {
+		// here: remove currentorow
+		// remove locations and update locationsTable
+		locationsTable.deleteRow(currentLocationRow);
+		for(cc=currentLocationRow;cc<locationsTable.data.length;cc++) {
+			locations[cc] = locations[cc] + 1;
+		}
+		locations.pop();
+		save_locations();
 	});
-	
-	sat.addEventListener('click',function() {
+
+
+	mtmMapTable.addEventListener('click', function() {
+		// Show Location management (tableview)
+		var annot;
+		if (flgWinLocations) {
+			winLocations.close(); // on close we save the locations
+			locations_to_annotations();
+			mapview.addAnnotation(centerAnnotation);
+		}
+		else {
+			winLocations.open();
+		}
+	});
+		
+	mtmSat.addEventListener('click',function() {
 		// set map type to satellite
 		mapview.setMapType(Titanium.Map.SATELLITE_TYPE);
 	});
 	
-	std.addEventListener('click',function() {
+	mtmStd.addEventListener('click',function() {
 		// set map type to standard
 		mapview.setMapType(Titanium.Map.STANDARD_TYPE);
 	});
 	
-	hyb.addEventListener('click',function() {
+	mtmHyb.addEventListener('click',function() {
 		// set map type to hybrid
 		mapview.setMapType(Titanium.Map.HYBRID_TYPE);
 	});
 	
-	zoomin.addEventListener('click',function() {
+	mtmZoomin.addEventListener('click',function() {
 		mapview.zoom(1);
 	});
 	
-	zoomout.addEventListener('click',function() {
+	mtmZoomout.addEventListener('click',function() {
 		mapview.zoom(-1);
 	});
 }		
 
 if (!isAndroid) {
-	removeAll = Titanium.UI.createButton({
-		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,
-		title:'Remove All'
-	});
-	win.rightNavButton = removeAll;
-
 	//
 	// TOOLBAR BUTTONS
 	//
-	
-	// button to change to ATL
-	atl = Titanium.UI.createButton({
-		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,
-		title:'ATL'
-	});
+		
 	// activate annotation
 	mapview.selectAnnotation(mapview.annotations[0].title,true);
-	
-	// button to change to SV	
-	sv = Titanium.UI.createButton({
-		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,
-		title:'SV'
-	});
-	mapview.addEventListener('complete', function()
-	{
+
+	win.rightNavButton = removeAll;
+
+	mapview.addEventListener('complete', function() {
 		Ti.API.info("map has completed loaded region");
 	});
 		
-	var flexSpace = Titanium.UI.createButton({
-		systemButton:Titanium.UI.iPhone.SystemButton.FLEXIBLE_SPACE
-	});
-	
+	var flexSpace = Titanium.UI.createButton({systemButton:Titanium.UI.iPhone.SystemButton.FLEXIBLE_SPACE});
+
+	mtmAddNewCenter = Titanium.UI.createButton({style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,title:'Add new at center'});;
+	mtmAddNewHere = Titanium.UI.createButton({style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,title:'Add new here'});
+	mtmRemoveRow = Titanium.UI.createButton({style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,title:'Remove Row'});
+	mtmMapTable = Titanium.UI.createButton({style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,title:'Show Table'});
+
+
 	// button to change map type to SAT
-	sat = Titanium.UI.createButton({
-		title:'Sat',
-		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
-	});
+	mtmSat = Titanium.UI.createButton({title:'Sat',style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED});
 	// button to change map type to STD
-	std = Titanium.UI.createButton({
-		title:'Std',
-		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
-	});
+	mtmStd = Titanium.UI.createButton({title:'Std',style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED});
 	// button to change map type to HYBRID
-	hyb = Titanium.UI.createButton({
-		title:'Hyb',
-		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
-	});
+	mtmHyb = Titanium.UI.createButton({title:'Hyb',style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED});
 	// button to zoom-in
-	zoomin = Titanium.UI.createButton({
-		title:'+',
-		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
-	});
+	mtmZoomin = Titanium.UI.createButton({title:'+',style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED});
 	// button to zoom-out
-	zoomout = Titanium.UI.createButton({
-		title:'-',
-		style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
-	});
+	mtmZoomout = Titanium.UI.createButton({title:'-',style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED});
 	
-	wireClickHandlers();
-	
-	win.setToolbar([flexSpace,std,flexSpace,hyb,flexSpace,sat,flexSpace,atl,flexSpace,sv,flexSpace,zoomin,flexSpace,zoomout,flexSpace]);
+	wireClickHandlers();	
+	win.setToolbar([flexSpace,std,flexSpace,hyb,flexSpace,sat,flexSpace,btnLocMgt,flexSpace,sv,flexSpace,zoomin,flexSpace,zoomout,flexSpace]);
 } else {
 	var activity = Ti.Android.currentActivity;
 	activity.onCreateOptionsMenu = function(e) {
 		var menu = e.menu;
-		
-		atl = menu.add({title : 'ATL'});
-		sv = menu.add({title : 'SV'});
-		sat = menu.add({title : 'Sat'});
-		std = menu.add({title : 'Std'});
-		hyb = menu.add({title : 'Hyb'});
-		zoomin = menu.add({title : "Zoom In"});
-		zoomout = menu.add({title : 'Zoom Out'});
-		removeAll = menu.add({title:'Remove All'});
-		
+	
+		mtmAddNewCenter = menu.add({title : 'Add new at center'});
+		mtmAddNewHere = menu.add({title : 'Add new here'});
+		mtmRemoveRow = menu.add({title : 'Remove Row'});	
+		mtmMapTable = menu.add({title : 'Show Table'});
+		Ti.API.info('in onCreateOptionsMenu');
+		mtmSat = menu.add({title : 'Sat'});
+		mtmStd = menu.add({title : 'Std'});
+		mtmHyb = menu.add({title : 'Hyb'});
+		mtmZoomin = menu.add({title : "Zoom In"});
+		mtmZoomout = menu.add({title : 'Zoom Out'});
+				
 		wireClickHandlers();
 	}
 }
+
+activity.onPrepareOptionsMenu = function(e) {
+    var menu = e.menu;
+
+	Ti.API.info('in onPrepareOptionsMenu');	
+	if (flgWinLocations) {
+		menu.getItem(2).setVisible(true);
+		menu.getItem(3).setTitle('Show Map');
+	}	
+	else {
+		menu.getItem(2).setVisible(false);
+		menu.getItem(3).setTitle('Show Table');	
+	}
+	Ti.API.info('exit onPrepareOptionsMenu');
+};
 
 //
 // EVENT LISTENERS
@@ -233,12 +270,13 @@ if (!isAndroid) {
 mapview.addEventListener('regionChanged',function(evt)
 {
 	Titanium.API.info('maps region has updated to '+evt.longitude+','+evt.latitude);
-	//Titanium.API.info(mapview.annotations[2].title);
-
+	// Ti.API.fireEvent('locationChanged',{latitude:evt.latitude,longitude:evt.longitude});
+	Ti.API.info('locationChanged event fired' + evt.latitude + evt.longitude);
 	mapview.removeAnnotation(centerAnnotation);	
 	centerAnnotation.latitude = evt.latitude;
 	centerAnnotation.longitude = evt.longitude;
-	mapview.addAnnotation(centerAnnotation);		
+	mapview.addAnnotation(centerAnnotation);	
+
 	mapview.selectAnnotation(centerAnnotation);
 });
 
@@ -281,41 +319,11 @@ mapview.addEventListener('click',function(evt)
 		evt.annotation.pincolor = Titanium.Map.ANNOTATION_GREEN;
 		evt.annotation.subtitle = 'Appcelerator used to be near here';
 		evt.annotation.leftButton = 'images/appcelerator_small.png';
-
 	}
-	if (myid == 2)
-	{
-		if(annotationAdded==false)
-		{
-			mapview.addAnnotation(mountainView);
-			annotationAdded=true;
-		}
-		else
-		{
-			mapview.removeAnnotation(mountainView);
-			annotationAdded=false;
-		}
-	}
+	// mapview.selectAnnotation(annotation.title);
 });
 
 // annotation click event listener (same as above except only fires for a given annotation)
-atlanta.addEventListener('click', function(evt)
-{
-	// get event properties
-	var annotation = evt.source;
-	var clicksource = evt.clicksource;
-	Ti.API.info('atlanta annotation click clicksource = ' + clicksource);
-});
-
-apple.addEventListener('click', function(evt)
-{
-
-	// get event properties
-	var annotation = evt.source;
-	var clicksource = evt.clicksource;
-	Ti.API.info('apple annotation click clicksource = ' + clicksource);
-});
-
 centerAnnotation.addEventListener('click', function(evt)
 {
 	var annotation = evt.source;

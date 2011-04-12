@@ -54,20 +54,7 @@ function populate_uvdata_row(UVDataRow) {
 		
 		//Ti.API.info('populated UVDATA row:'+UVDataRow.date);
 	    viewrow.title = UVDataRow.date;
-		/*
-		viewrow.title = 'Type '+ skin_types[cc].type + ' ' + skin_types[cc].description;
-		var imgSkinType;
-		switch (cc + 1) {
-			case 1:  imgSkinType = 'skin_type_I.png'; break; 
-			case 2:  imgSkinType = 'skin_type_II.png'; break;
-			case 3:  imgSkinType = 'skin_type_III.png'; break;
-			case 4:  imgSkinType = 'skin_type_IV.png'; break;
-			case 5:  imgSkinType = 'skin_type_V.png'; break;
-			case 6:  imgSkinType = 'skin_type_VI.png'; break;
-			default: imgSkinType = 'skin_type_I.png'; break;
-		};	
-		viewrow.leftImage = imgSkinType;
-		*/
+
 		var	imgWeather = Titanium.UI.createImageView({image:'images/weather/'+UVDataRow.ywcode+'.gif',
 							color:'#336699',left:4,top:2,height:52,width:52,
 							borderStyle:Titanium.UI.INPUT_BORDERSTYLE_NONE});
@@ -151,7 +138,7 @@ function get_uvi_data(latitude, longitude, fnOnLoad) {
 	var loader = Titanium.Network.createHTTPClient();
 	// Sets the HTTP request method, and the URL to get data from
 	loader.open("POST","http://192.168.1.209:8082/");
-	//loader.setTimeout([5000]);
+	loader.setTimeout(5000);
 	loader.setRequestHeader('Content-Type','application/json');
 	// Send the HTTP request
 	var jsonPost = "{\"long\":"+longitude+",\"lat\":"+latitude+"}";
@@ -165,10 +152,10 @@ function get_uvi_data(latitude, longitude, fnOnLoad) {
 	loader.onerror = function() 
 	{
 		Ti.API.info("UVI servicw on error");
-		Titanium.UI.createAlertDialog({
-	    	title: 'UV Service error',
-    		message: this.responseText,
-    		buttonNames: ['Back']}).show();	
+		//Titanium.UI.createAlertDialog({
+	    //	title: 'UV Service error',
+    	//	message: this.responseText,
+    	//	buttonNames: ['Back']}).show();	
 		actInd.hide();	
 	};	
 }
